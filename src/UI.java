@@ -23,7 +23,7 @@ public class UI {
 	}
 	
 	public String getURL() {
-		String url = JOptionPane.showInputDialog("Enter URL of the threads FIRST page .");
+		String url = JOptionPane.showInputDialog("Enter the URL of ANY of the threads pages .");
 		assert(url != null);
 		return url;
 	}

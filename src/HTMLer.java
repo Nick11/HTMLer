@@ -15,10 +15,11 @@ public class HTMLer {
 		WebComm comm = new WebComm(ui);
 		//some user input
 		String url = ui.getURL();
-		String  password = ui.getPassword();
+		String  password = "";//ui.getPassword();
 		String answer = null;
 		try {
 			answer = comm.request(url, password);
+			//System.out.println(answer);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

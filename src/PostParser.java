@@ -1,5 +1,7 @@
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringEscapeUtils;
 /**
@@ -19,7 +21,7 @@ public class PostParser {
 	 * @param input String containing HTML code of one or more posts
 	 * @return ArrayList<Post> containing the posts of <code>input</code>
 	 */
-	public static ArrayList<Post> parsePosts(String input){
+	/*public static ArrayList<Post> parsePosts(String input){
 		ArrayList<Post> posts = new ArrayList<Post>();
 		
 		Scanner scan = new Scanner(input);
@@ -47,7 +49,41 @@ public class PostParser {
 		}
 		scan.close();
 		return posts;
+	}*/
+	
+	public static ArrayList<Post> parsePosts(String input){
+		ArrayList<Post> posts = new ArrayList<Post>();
+		String authPre = "<span class=\"name\"";
+		String authPost = "<span class=\"postdetails poster-profile\"";
+		String authMiddle = "(.+?strong>){2}(.+?)(</strong.+?){2}";
+		
+		String postPre = "<div class=\"postbody\"><div>";
+		String postPost = "</div><div class=\"clear\"></div>";
+		String postMiddle = "(.+?)";
+		
+		Pattern authorPat = Pattern.compile(authPre+authMiddle+authPost);
+		Pattern postPat = Pattern.compile(postPre+postMiddle+postPost);
+
+		
+		Matcher authorMatcher = authorPat.matcher(input);
+		Matcher postMatcher = postPat.matcher(input);
+		
+		/*authorMatcher.find();
+		postMatcher.find();
+		
+		System.out.println(authorMatcher.group(2));
+		System.out.println(postMatcher.group(1));*/
+	
+		String author, text;
+		while(authorMatcher.find() && postMatcher.find()){
+			author = authorMatcher.group(2);
+			text = postMatcher.group(1);
+			text = removeHTMLCodes(text);
+			posts.add(new Post(author, text));
+		}
+		return posts;
 	}
+	
 	/**
 	 * Transforms HTML code into readable plaintext. 
 	 * @param str HTML-String

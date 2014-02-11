@@ -2,6 +2,8 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
@@ -21,7 +23,7 @@ import org.apache.http.message.BasicNameValuePair;
 public class WebComm {
 	
 	private UI ui;
-	private final int POST_PER_PAGE = 10; //TODO: change if there are other numbers (then 10) of posts per page.
+	private final int POST_PER_PAGE = 15; //TODO: change if there are other numbers (then 10) of posts per page.
 	
 	public WebComm(UI ui){
 		this.ui = ui;
@@ -43,10 +45,18 @@ public class WebComm {
 		//formparams.add(new BasicNameValuePair("username", username)); TODO: uncomment this line to make a POST-request, that requires an username. modify the UI to get the username as input as well. then hand it over via the HTMLer.
 		UrlEncodedFormEntity entity = new UrlEncodedFormEntity(formparams, "UTF-8");
 		
-		//modify the urlNonMod and prepare som technical details...
-		//cut ".html" off
-		String urlCut = urlNonMod.substring(0,urlNonMod.length()-5);
+		//modify the urlNonMod and prepare some technical details...
+		Pattern pattern = Pattern.compile("(^.+t\\d{0,4}).*?(-.+)$");
+		Matcher matcher = pattern.matcher(urlNonMod);
+		matcher.find();
+		
+		String urlCut = matcher.group(1);
+		String urlEnd = matcher.group(2);
+		//System.out.println(urlCut);
+		//System.out.println(urlEnd);
+		
 		String currentUrl;
+		
 		//use a StringBuilder to concatenate the HTML code of each page to one big String. this is done this way for performance reason.
 		StringBuilder builder = new StringBuilder();
 		
@@ -57,31 +67,32 @@ public class WebComm {
 		
 		int currentPostNr = firstPage*POST_PER_PAGE;
 		while(currentPostNr < lastPage*POST_PER_PAGE){ //pages*POST_PER_PAGE because we iterate over the number of posts and not pages.
-			currentUrl = urlCut+"-s"+currentPostNr+".html";
-			if(currentPostNr==0)
-					currentUrl=urlNonMod;
+			currentUrl = urlCut+"p"+currentPostNr+urlEnd;
 			//first HTTP-request (GET-request) which does nothing, but telling the server to redirect this client to the page, where a password (and username?) is required. As I'm not using cookies, this has to be done in each iteration.
 			HttpGet httpget = new HttpGet(currentUrl);
-			httpclient.execute(httpget);
+			HttpResponse response = httpclient.execute(httpget);
+			InputStream is = response.getEntity().getContent();
 			//close this request to free the httpclient and ignore the response, as we know that it contains nothing but a request to enter the password (and username?)
-			httpget.abort();
+			
 			
 			//the actual request, which POSTs the password (and username?) as entity
-			HttpPost httppost = new HttpPost(currentUrl);
-			httppost.setEntity(entity);
+			//HttpPost httppost = new HttpPost(currentUrl);
+			//httppost.setEntity(entity);
 			
 			//the response wanted with the forums content as HTML-code via a stream
-			HttpResponse response = httpclient.execute(httppost);
-			InputStream is = response.getEntity().getContent();
+			//HttpResponse response = httpclient.execute(httppost);
+			//InputStream is = response.getEntity().getContent();
 			
 			//append each new page to the StringBuilder
 			builder.append(streamToString(is));
 			
-			httppost.abort();
+			//httppost.abort();
+			httpget.abort();
 			is.close();
 			
+			
 			currentPostNr = currentPostNr+POST_PER_PAGE;
-			ui.updateStatusPanel(currentPostNr/10-firstPage+1);// offset/10 is the number of the current page
+			ui.updateStatusPanel(currentPostNr/POST_PER_PAGE-firstPage+1);// offset/POST_PER_PAGE is the number of the current page
 		}
 		return builder.toString();
 	}
