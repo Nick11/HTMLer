@@ -14,9 +14,9 @@ public class HTMLer {
 		UI ui = new UI();
 		WebComm comm = new WebComm(ui);
 		//some user input
-		String url = "http://rpgame.forumieren.com/t186-fabula";//ui.getURL();
-		String user = "Hellomania";
-		String  password = "Banane";//ui.getPassword();
+		String url = ui.getURL();
+		String user = ui.getUsername();
+		String  password = ui.getPassword();
 		String answer = null;
 		try {
 			answer = comm.request(url, user, password);

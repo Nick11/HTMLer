@@ -33,6 +33,13 @@ public class UI {
 		assert(password != null);
 		return password;
 	}
+	
+	public String getUsername() {
+		String username = JOptionPane.showInputDialog("Enter username.");
+		assert(username != null);
+		return username;
+	}
+	
 	public String getThreadName(){
 		return JOptionPane.showInputDialog("Enter thread's name. No special characters (e.g. ?, *, \", /, * and  so on)");
 	}

@@ -53,8 +53,7 @@ public class WebComm {
         CookieStore cookieStore = new BasicCookieStore();
         localContext = HttpClientContext.create();
         localContext.setCookieStore(cookieStore);
-        httpclient = HttpClients.custom().setDefaultRequestConfig(globalConfig).setDefaultCookieStore(cookieStore).build();
-        
+        httpclient = HttpClients.custom().setDefaultRequestConfig(globalConfig).setDefaultCookieStore(cookieStore).disableRedirectHandling().build();
 	}
 	
 	/**
@@ -82,23 +81,21 @@ public class WebComm {
 		StringBuilder builder = new StringBuilder();
 		
 		//user input: number of pages to copy (e.g. the number of pages in this thread). The copying always starts with page 0.
-		int firstPage = 0;//ui.getFirstPage()-1;//from page 2 to 4 means 2,3,4, and not 3,4
-		int lastPage = 2;//ui.getLastPage(); 
+		int firstPage = ui.getFirstPage()-1;//from page 2 to 4 means 2,3,4, and not 3,4
+		int lastPage = ui.getLastPage(); 
 		ui.initStatusPanel(lastPage-firstPage);
 		
 		int currentPostNr = firstPage*POST_PER_PAGE;
 		while(currentPostNr < lastPage*POST_PER_PAGE){ //pages*POST_PER_PAGE because we iterate over the number of posts and not pages.
-			currentUrl = urlCut+"p"+currentPostNr+urlEnd;
+			currentUrl = urlCut+(currentPostNr==0?"":"p"+currentPostNr)+urlEnd;
 			
 			String getAnswer = sendGet();
 			if(getAnswer.equals("")){
 				login(username, password);
+				currentUrl = urlCut+(currentPostNr==0?"":"p"+currentPostNr)+urlEnd;
 				getAnswer = sendGet();
-			}else{
-				//append each new page to the StringBuilder
-				builder.append(getAnswer);
 			}
-			
+			builder.append(getAnswer);
 			currentPostNr = currentPostNr+POST_PER_PAGE;
 			ui.updateStatusPanel(currentPostNr/POST_PER_PAGE-firstPage+1);// offset/POST_PER_PAGE is the number of the current page
 		}
@@ -159,7 +156,6 @@ public class WebComm {
 		String answer = streamToString(is);
 		is.close();
 		httpget.abort();
-		printCookies();
 		return answer;
 	}
 
@@ -184,4 +180,5 @@ public class WebComm {
             }
         }
 	}
+	
 }
