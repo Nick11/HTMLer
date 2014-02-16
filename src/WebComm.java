@@ -20,6 +20,7 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.params.HttpClientParams;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.cookie.Cookie;
 import org.apache.http.impl.client.BasicCookieStore;
@@ -42,7 +43,6 @@ public class WebComm {
 	
 	public WebComm(UI ui){
 		this.ui = ui;
-//		httpclient.setCookieStore(new BasicCookieStore());
 		// make sure cookies is turn on
 		CookieHandler.setDefault(new CookieManager());
 		// Create a local instance of cookie store
@@ -54,7 +54,6 @@ public class WebComm {
         localContext = HttpClientContext.create();
         localContext.setCookieStore(cookieStore);
         httpclient = HttpClients.custom().setDefaultRequestConfig(globalConfig).setDefaultCookieStore(cookieStore).build();
-        
         
 	}
 	
@@ -92,16 +91,9 @@ public class WebComm {
 			currentUrl = urlCut+"p"+currentPostNr+urlEnd;
 			
 			String getAnswer = sendGet();
-			
-			this.currentUrl = "http://rpgame.forumieren.com/login";
-			login(username, password);
-			
-			currentUrl = urlCut+"p"+currentPostNr+urlEnd;
-			getAnswer = sendGet();
-			
-			
 			if(getAnswer.equals("")){
 				login(username, password);
+				getAnswer = sendGet();
 			}else{
 				//append each new page to the StringBuilder
 				builder.append(getAnswer);
@@ -138,7 +130,6 @@ public class WebComm {
 		
 		String answer = streamToString(is);
 		
-		this.currentUrl = response.getLastHeader("Location").getValue();
 		
 		is.close();
 		httppost.abort();
@@ -162,9 +153,8 @@ public class WebComm {
 		//System.out.println(responseCode);
 		assert(responseCode==200 || responseCode==302);
 		if( responseCode==302){ //in case of redirection
-			//.replace("%2F", "/");
+			this.currentUrl = response.getLastHeader("Location").getValue();
 		}
-	//	HttpClientParams.setRedirecting(httpclient.getParams(), true);
 		InputStream is = respEntity.getContent();
 		String answer = streamToString(is);
 		is.close();
