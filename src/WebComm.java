@@ -1,7 +1,6 @@
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.util.ArrayList;
@@ -10,22 +9,23 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.http.Consts;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CookieStore;
-import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.CookieSpecs;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.protocol.ClientContext;
-import org.apache.http.impl.client.AbstractHttpClient;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.cookie.Cookie;
 import org.apache.http.impl.client.BasicCookieStore;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.cookie.BasicClientCookie;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.protocol.BasicHttpContext;
-import org.apache.http.protocol.HttpContext;
 /**
  * 
  * @author Niclas Scheuing
@@ -35,15 +35,27 @@ public class WebComm {
 	
 	private UI ui;
 	private final int POST_PER_PAGE = 15; //TODO: change if there are other numbers (then 15) of posts per page.
-	private String cookies;
-	private HttpClient httpclient;
-	private final String USER_AGENT = "Mozilla/5.0";
+	private CloseableHttpClient httpclient;
+	private final String USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0";
+	private String currentUrl;
+	private HttpClientContext localContext;
 	
 	public WebComm(UI ui){
 		this.ui = ui;
-		this.httpclient = new DefaultHttpClient();
+//		httpclient.setCookieStore(new BasicCookieStore());
 		// make sure cookies is turn on
 		CookieHandler.setDefault(new CookieManager());
+		// Create a local instance of cookie store
+        
+
+        // Create local HTTP context
+        RequestConfig globalConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.BEST_MATCH).build();
+        CookieStore cookieStore = new BasicCookieStore();
+        localContext = HttpClientContext.create();
+        localContext.setCookieStore(cookieStore);
+        httpclient = HttpClients.custom().setDefaultRequestConfig(globalConfig).setDefaultCookieStore(cookieStore).build();
+        
+        
 	}
 	
 	/**
@@ -71,23 +83,25 @@ public class WebComm {
 		StringBuilder builder = new StringBuilder();
 		
 		//user input: number of pages to copy (e.g. the number of pages in this thread). The copying always starts with page 0.
-		int firstPage = ui.getFirstPage()-1;//from page 2 to 4 means 2,3,4, and not 3,4
-		int lastPage = ui.getLastPage(); 
+		int firstPage = 0;//ui.getFirstPage()-1;//from page 2 to 4 means 2,3,4, and not 3,4
+		int lastPage = 2;//ui.getLastPage(); 
 		ui.initStatusPanel(lastPage-firstPage);
 		
 		int currentPostNr = firstPage*POST_PER_PAGE;
-		
-		String currentUrl;
 		while(currentPostNr < lastPage*POST_PER_PAGE){ //pages*POST_PER_PAGE because we iterate over the number of posts and not pages.
 			currentUrl = urlCut+"p"+currentPostNr+urlEnd;
 			
-			String getAnswer = sendGet(currentUrl);
+			String getAnswer = sendGet();
 			
-			Pattern loginPattern = Pattern.compile("Bitte geben Sie Benutzername und Passwort ein, um sich einzuloggen.");
-			Matcher loginMatcher = loginPattern.matcher(getAnswer);
-			if(loginMatcher.find()){
-				String loginUrl = currentUrl;
-				login(username, password, loginUrl);
+			this.currentUrl = "http://rpgame.forumieren.com/login";
+			login(username, password);
+			
+			currentUrl = urlCut+"p"+currentPostNr+urlEnd;
+			getAnswer = sendGet();
+			
+			
+			if(getAnswer.equals("")){
+				login(username, password);
 			}else{
 				//append each new page to the StringBuilder
 				builder.append(getAnswer);
@@ -99,45 +113,63 @@ public class WebComm {
 		return builder.toString();
 	}
 	
-	private String login(String username, String password, String url) throws IOException{
+	private String login(String username, String password) throws IOException{
 		//create the attachment for the POST-request
 		List<NameValuePair> formparams = new ArrayList<NameValuePair>();
+		formparams.add(new BasicNameValuePair("username", username));
 		formparams.add(new BasicNameValuePair("password", password));
-		formparams.add(new BasicNameValuePair("username", username)); //TODO: uncomment this line to make a POST-request, that requires an username. modify the UI to get the username as input as well. then hand it over via the HTMLer.
-		UrlEncodedFormEntity entity = new UrlEncodedFormEntity(formparams, "UTF-8");
+		formparams.add(new BasicNameValuePair("autologin", "on"));
+		formparams.add(new BasicNameValuePair("redirect", ""));
+		formparams.add(new BasicNameValuePair("query", ""));
+		formparams.add(new BasicNameValuePair("login", "Login"));
+		UrlEncodedFormEntity entity = new UrlEncodedFormEntity(formparams, Consts.UTF_8);
 		
 		//the actual request, which POSTs the password and username as entity
-		HttpPost httppost = new HttpPost(url);
+		HttpPost httppost = new HttpPost(currentUrl);
 		httppost.setEntity(entity);
-		
+		httppost.setHeader("Accept",
+			"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+		httppost.setHeader("Accept-Language", "	de-de,de;q=0.8,en-us;q=0.5,en;q=0.3");
+		httppost.setHeader("Connection", "keep-alive");
+		httppost.setHeader("Accept-Encoding", "utf-8");
 		//the response wanted with the forums content as HTML-code via a stream
-		HttpResponse response = httpclient.execute(httppost);
+		HttpResponse response = httpclient.execute(httppost,localContext);
 		InputStream is = response.getEntity().getContent();
 		
 		String answer = streamToString(is);
+		
+		this.currentUrl = response.getLastHeader("Location").getValue();
+		
 		is.close();
 		httppost.abort();
+		printCookies();
 		return answer;
 	}
 	
-	private String sendGet(String url) throws ClientProtocolException, IOException{
-		HttpGet httpget = new HttpGet(url);
-		httpget.setHeader("User-Agent", USER_AGENT);
+	private String sendGet() throws ClientProtocolException, IOException{
+		HttpGet httpget = new HttpGet(this.currentUrl);
 		httpget.setHeader("Accept",
 			"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
 		httpget.setHeader("Accept-Language", "	de-de,de;q=0.8,en-us;q=0.5,en;q=0.3");
+		httpget.setHeader("Connection", "keep-alive");
+		httpget.setHeader("Accept-Encoding", "utf-8");
+		httpget.setHeader("Host", "rpgame.forumieren.com");
+				
+		HttpResponse response = httpclient.execute(httpget,localContext);
+		HttpEntity respEntity = response.getEntity();
 		
-		HttpResponse response = httpclient.execute(httpget);
 		int responseCode = response.getStatusLine().getStatusCode();
 		//System.out.println(responseCode);
-		assert(responseCode==200);
-		InputStream is = response.getEntity().getContent();
+		assert(responseCode==200 || responseCode==302);
+		if( responseCode==302){ //in case of redirection
+			//.replace("%2F", "/");
+		}
+	//	HttpClientParams.setRedirecting(httpclient.getParams(), true);
+		InputStream is = respEntity.getContent();
 		String answer = streamToString(is);
 		is.close();
-		// set cookies
-		setCookies(response.getFirstHeader("Set-Cookie") == null ? "" : 
-	                     response.getFirstHeader("Set-Cookie").toString());
 		httpget.abort();
+		printCookies();
 		return answer;
 	}
 
@@ -152,7 +184,14 @@ public class WebComm {
 		return ret;
 	}
 	
-	public void setCookies(String cookies) {
-		this.cookies = cookies;
-	  }
+	private void printCookies(){
+		 List<Cookie> cookies = localContext.getCookieStore().getCookies();
+		if (cookies.isEmpty()) {
+            System.out.println("None");
+        } else {
+            for (int i = 0; i < cookies.size(); i++) {
+                System.out.println("- " + cookies.get(i).toString());
+            }
+        }
+	}
 }
