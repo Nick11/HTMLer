@@ -14,11 +14,12 @@ public class HTMLer {
 		UI ui = new UI();
 		WebComm comm = new WebComm(ui);
 		//some user input
-		String url = ui.getURL();
-		String  password = "";//ui.getPassword();
+		String url = "http://rpgame.forumieren.com/t186-fabula";//ui.getURL();
+		String user = "Hellomania";
+		String  password = "Banane";//ui.getPassword();
 		String answer = null;
 		try {
-			answer = comm.request(url, password);
+			answer = comm.request(url, user, password);
 			//System.out.println(answer);
 		} catch (Exception e) {
 			e.printStackTrace();
