@@ -122,6 +122,7 @@ public class AdvancedUI extends JFrame {
 		mainPanel.add(ok);
 		mainPanel.add(cancel);
 		
+		mainPanel.add(new JLabel("Wait after clicking 'ok'. Might take a while."));
 		this.setContentPane(mainPanel);
 		this.pack();
 	}
@@ -141,7 +142,7 @@ public class AdvancedUI extends JFrame {
 		int end = Integer.parseInt(this.endField.getText());
 		this.pages = end-start+1;
 		
-		progressFrame = new JFrame();
+		/*progressFrame = new JFrame();
 		JPanel pane = new JPanel();
 		pane.add(bar);
 		pane.add(progressLabel);
@@ -149,7 +150,7 @@ public class AdvancedUI extends JFrame {
 		progressFrame.setTitle("HTMLer");
 		progressFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		progressFrame.setMinimumSize(new Dimension(300,100));
-		progressFrame.setVisible(true);
+		progressFrame.setVisible(true);*/
 		
 		updateStatusPanel(0);
 	}
