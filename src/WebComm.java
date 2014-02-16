@@ -34,15 +34,13 @@ import org.apache.http.message.BasicNameValuePair;
  */
 public class WebComm {
 	
-	private UI ui;
 	private final int POST_PER_PAGE = 15; //TODO: change if there are other numbers (then 15) of posts per page.
 	private CloseableHttpClient httpclient;
 	private final String USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:27.0) Gecko/20100101 Firefox/27.0";
 	private String currentUrl;
 	private HttpClientContext localContext;
 	
-	public WebComm(UI ui){
-		this.ui = ui;
+	public WebComm(){
 		// make sure cookies is turn on
 		CookieHandler.setDefault(new CookieManager());
 		// Create a local instance of cookie store
@@ -63,7 +61,7 @@ public class WebComm {
 	 * @return String containing the whole HTML-code of the copied pages 
 	 * @throws Exception some unhandled exceptions. Too lazy to take care of these.
 	 */
-	public  String  request(String urlNonMod, String username, String password) throws Exception{
+	public  String  request(String urlNonMod, String username, String password, int firstPage, int lastPage, AdvancedUI ui) throws Exception{
 		
 		//modify the urlNonMod and prepare some technical details...
 		Pattern pattern = Pattern.compile("(^.+t\\d{0,4}).*?(-.+)$");
@@ -81,10 +79,7 @@ public class WebComm {
 		StringBuilder builder = new StringBuilder();
 		
 		//user input: number of pages to copy (e.g. the number of pages in this thread). The copying always starts with page 0.
-		int firstPage = ui.getFirstPage()-1;//from page 2 to 4 means 2,3,4, and not 3,4
-		int lastPage = ui.getLastPage(); 
-		ui.initStatusPanel(lastPage-firstPage);
-		
+		firstPage= firstPage-1;
 		int currentPostNr = firstPage*POST_PER_PAGE;
 		while(currentPostNr < lastPage*POST_PER_PAGE){ //pages*POST_PER_PAGE because we iterate over the number of posts and not pages.
 			currentUrl = urlCut+(currentPostNr==0?"":"p"+currentPostNr)+urlEnd;
