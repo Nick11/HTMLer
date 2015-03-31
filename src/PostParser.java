@@ -55,12 +55,13 @@ public class PostParser {
 		ArrayList<Post> posts = new ArrayList<Post>();
 		String authPre = "<span class=\"name\"";
 		String authPost = "<span class=\"postdetails poster-profile\"";
-		String authMiddle = "(.+?strong>){2}(.+?)(</strong.+?){2}";
+		String authMiddle = ".*?><strong>([^>]+?)</strong></span>.*?";
 		
 		String postPre = "<div class=\"postbody\"><div>";
 		String postPost = "</div><div class=\"clear\"></div>";
 		String postMiddle = "(.+?)";
 		
+//		Pattern authorPat = Pattern.compile(authPre+"("+authMiddle+"|"+authMiddleGuest+")"+authPost);
 		Pattern authorPat = Pattern.compile(authPre+authMiddle+authPost);
 		Pattern postPat = Pattern.compile(postPre+postMiddle+postPost);
 
@@ -76,7 +77,12 @@ public class PostParser {
 	
 		String author, text;
 		while(authorMatcher.find() && postMatcher.find()){
-			author = authorMatcher.group(2);
+			String a0 = authorMatcher.group(0);
+			String a1 = authorMatcher.group(1);
+//			String a2 = authorMatcher.group(2);
+//			String a3 = authorMatcher.group(3);
+//			String a4 = authorMatcher.group(4);
+			author = authorMatcher.group(1);
 			text = postMatcher.group(1);
 			text = removeHTMLCodes(text);
 			posts.add(new Post(author, text));

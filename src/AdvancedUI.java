@@ -106,7 +106,7 @@ public class AdvancedUI extends JFrame {
 		bar.setValue(0);
 		
 		
-		mainPanel.add(new JLabel("URL (has to start with http:"));
+		mainPanel.add(new JLabel("URL (has to start with http:)"));
 		mainPanel.add(urlField);
 		mainPanel.add(new JLabel("username (only if login required)"));
 		mainPanel.add(usernameField);
